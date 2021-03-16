@@ -37,8 +37,6 @@ func NewTransparentCache(actualPriceService PriceService, maxAge time.Duration) 
 
 // GetPriceFor gets the price for the item, either from the cache or the actual service if it was not cached or too old
 func (c *TransparentCache) GetPriceFor(itemCode string) (float64, error) {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
 
 	price, ok := c.prices[itemCode]
 	if ok {
@@ -49,7 +47,10 @@ func (c *TransparentCache) GetPriceFor(itemCode string) (float64, error) {
 	if err != nil {
 		return 0, fmt.Errorf("getting price from service : %v", err.Error())
 	}
+	c.mutex.Lock()
 	c.prices[itemCode] = price
+	c.mutex.Unlock()
+
 	return price, nil
 }
 
