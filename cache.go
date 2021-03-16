@@ -1,8 +1,9 @@
 package sample1
 
 import (
-	"time"
 	"fmt"
+	"sync"
+	"time"
 )
 
 // PriceService is a service that we can use to get prices for the items
@@ -23,6 +24,7 @@ type TransparentCache struct {
 	actualPriceService PriceService
 	maxAge             time.Duration
 	prices             map[string]float64
+	mutex              sync.Mutex
 }
 
 func NewTransparentCache(actualPriceService PriceService, maxAge time.Duration) *TransparentCache {
@@ -35,6 +37,9 @@ func NewTransparentCache(actualPriceService PriceService, maxAge time.Duration) 
 
 // GetPriceFor gets the price for the item, either from the cache or the actual service if it was not cached or too old
 func (c *TransparentCache) GetPriceFor(itemCode string) (float64, error) {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+
 	price, ok := c.prices[itemCode]
 	if ok {
 		// TODO: check that the price was retrieved less than "maxAge" ago!
