@@ -36,3 +36,15 @@ We suggest not to spend more than 2 hours total, which can be done over the cour
 What we want to see is how well you handle yourself given the time you spend on the problem, how you think, and how you prioritize when time is insufficient to solve everything.
 
 Please email your solution as soon as you have completed the challenge or the time is up.
+
+### Decisions made
+
+Time spent: ~1 hour.
+
+* Async group: The easiest solution was to create workers for each key since tests were very simple (just 2 concurrent
+  keys), but in a real scenario this could easily consume all available memory. A fixed number of workers would do it
+  better.
+* Lock for concurrent writes on map: The first approach was to lock the entire method but later it was obvious that
+  test were not green for it. Reduced the affected area to just the key write.
+* Value for prices map: I needed to store the time when the entry was created. A second map to store the creation time 
+  was an option but not optimal, so I preferred to change value with a structure.
