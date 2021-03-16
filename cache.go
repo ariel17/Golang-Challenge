@@ -12,6 +12,11 @@ type PriceService interface {
 	GetPriceFor(itemCode string) (float64, error)
 }
 
+type priceValue struct {
+	Price float64
+	CreatedAt time.Time
+}
+
 type priceResponse struct {
 	Price float64
 	Err   error
@@ -23,7 +28,7 @@ type priceResponse struct {
 type TransparentCache struct {
 	actualPriceService PriceService
 	maxAge             time.Duration
-	prices             map[string]float64
+	prices             map[string]priceValue
 	mutex              sync.Mutex
 }
 
@@ -31,24 +36,28 @@ func NewTransparentCache(actualPriceService PriceService, maxAge time.Duration) 
 	return &TransparentCache{
 		actualPriceService: actualPriceService,
 		maxAge:             maxAge,
-		prices:             map[string]float64{},
+		prices:             map[string]priceValue{},
 	}
 }
 
 // GetPriceFor gets the price for the item, either from the cache or the actual service if it was not cached or too old
 func (c *TransparentCache) GetPriceFor(itemCode string) (float64, error) {
 
-	price, ok := c.prices[itemCode]
+	v, ok := c.prices[itemCode]
 	if ok {
-		// TODO: check that the price was retrieved less than "maxAge" ago!
-		return price, nil
+		if time.Since(v.CreatedAt) < c.maxAge {
+			return v.Price, nil
+		}
 	}
 	price, err := c.actualPriceService.GetPriceFor(itemCode)
 	if err != nil {
 		return 0, fmt.Errorf("getting price from service : %v", err.Error())
 	}
 	c.mutex.Lock()
-	c.prices[itemCode] = price
+	c.prices[itemCode] = priceValue{
+		Price: price,
+		CreatedAt: time.Now(),
+	}
 	c.mutex.Unlock()
 
 	return price, nil
